@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33712.159
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7EB77246-2605-40C6-8543-84A12ED9B4C2}"
+	ProjectSection(SolutionItems) = preProject
+		metadata.json = metadata.json
+		README.md = README.md
+		..\..\VRCFaceTracking.Core\bin\x64\Debug\net7.0\VRCFaceTracking.Core.dll = ..\..\VRCFaceTracking.Core\bin\x64\Debug\net7.0\VRCFaceTracking.Core.dll
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VRCFT-LiveLink", "VRCFT-LiveLink\VRCFT-LiveLink.csproj", "{26503376-F99A-4D3D-B064-891A7599C49B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|arm64 = Debug|arm64
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|arm64 = Release|arm64
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{26503376-F99A-4D3D-B064-891A7599C49B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{26503376-F99A-4D3D-B064-891A7599C49B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{26503376-F99A-4D3D-B064-891A7599C49B}.Debug|arm64.ActiveCfg = Debug|Any CPU
+		{26503376-F99A-4D3D-B064-891A7599C49B}.Debug|arm64.Build.0 = Debug|Any CPU
+		{26503376-F99A-4D3D-B064-891A7599C49B}.Debug|x64.ActiveCfg = Debug|x64
+		{26503376-F99A-4D3D-B064-891A7599C49B}.Debug|x64.Build.0 = Debug|x64
+		{26503376-F99A-4D3D-B064-891A7599C49B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{26503376-F99A-4D3D-B064-891A7599C49B}.Debug|x86.Build.0 = Debug|Any CPU
+		{26503376-F99A-4D3D-B064-891A7599C49B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{26503376-F99A-4D3D-B064-891A7599C49B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{26503376-F99A-4D3D-B064-891A7599C49B}.Release|arm64.ActiveCfg = Release|Any CPU
+		{26503376-F99A-4D3D-B064-891A7599C49B}.Release|arm64.Build.0 = Release|Any CPU
+		{26503376-F99A-4D3D-B064-891A7599C49B}.Release|x64.ActiveCfg = Release|x64
+		{26503376-F99A-4D3D-B064-891A7599C49B}.Release|x64.Build.0 = Release|x64
+		{26503376-F99A-4D3D-B064-891A7599C49B}.Release|x86.ActiveCfg = Release|Any CPU
+		{26503376-F99A-4D3D-B064-891A7599C49B}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A4FA5C7F-BB02-45EA-BD22-020BD2DC828C}
+	EndGlobalSection
+EndGlobal
