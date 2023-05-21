@@ -78,7 +78,7 @@ namespace LiveLinkExtTrackingInterface
             // async wait for connection, timeout after timetoWait
             var timeToWait = TimeSpan.FromSeconds(60);
 
-            Logger.LogInformation($"Seeking LiveLink connection for {timeToWait.TotalSeconds}. Accepting data on {GetLocalIPAddress()}:{Constants.Port}");
+            Logger.LogInformation($"Seeking LiveLink connection for {timeToWait.TotalSeconds} seconds. Accepting data on {GetLocalIPAddress()}:{Constants.Port}");
             var asyncResult = _liveLinkConnection.BeginReceive(null, null);
 
             asyncResult.AsyncWaitHandle.WaitOne(timeToWait);
