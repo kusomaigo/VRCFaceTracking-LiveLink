@@ -23,7 +23,6 @@ namespace LiveLinkExtTrackingInterface
 {
     public class LiveLinkExtTrackingInterface : ExtTrackingModule
     {
-
         //private static CancellationTokenSource _cancellationToken;
 
         private UdpClient _liveLinkConnection;
@@ -32,7 +31,9 @@ namespace LiveLinkExtTrackingInterface
 
         private (bool, bool) trackingSupported = (false, false);
 
-        List<Stream> _images = new List<Stream>();
+        private bool disconnectWarned = false;
+
+        //List<Stream> _images = new List<Stream>();
 
         public static string GetLocalIPAddress()
         {
@@ -52,7 +53,7 @@ namespace LiveLinkExtTrackingInterface
 
         public override (bool eyeSuccess, bool expressionSuccess) Initialize(bool eyeAvailable, bool expressionAvailable)
         {
-            ModuleInformation.Name = "iPhone LiveLink";
+            ModuleInformation.Name = "Apple ARKit via LiveLink";
 
             var stream = GetType().Assembly.GetManifestResourceStream("VRCFT___LiveLink.Assets.iphone-livelink.png");
             ModuleInformation.StaticImages = stream != null ? new List<Stream> { stream } : ModuleInformation.StaticImages;
@@ -72,11 +73,10 @@ namespace LiveLinkExtTrackingInterface
             _latestData = new LiveLinkTrackingDataStruct();
 
             //_liveLinkConnection.Client.SendTimeout = 1000;
-            //_liveLinkConnection.Client.ReceiveTimeout = 1000;
-
+            _liveLinkConnection.Client.ReceiveTimeout = 250;
 
             // async wait for connection, timeout after timetoWait
-            var timeToWait = TimeSpan.FromSeconds(60);
+            var timeToWait = TimeSpan.FromSeconds(180);
 
             Logger.LogInformation($"Seeking LiveLink connection for {timeToWait.TotalSeconds} seconds. Accepting data on {GetLocalIPAddress()}:{Constants.Port}");
             var asyncResult = _liveLinkConnection.BeginReceive(null, null);
@@ -107,6 +107,7 @@ namespace LiveLinkExtTrackingInterface
             {
                 // The operation wasn't completed before the timeout and we're off the hook
                 // nothing init so return false
+                Logger.LogWarning("Did not receive message from LiveLink within initialization period, re-initialize the module to try again...");
                 trackingSupported = (false, false);
                 return trackingSupported;
             }
@@ -323,12 +324,19 @@ namespace LiveLinkExtTrackingInterface
             try
             {
                 // Grab the packet
-                // TODO: This just blocks and waits to receive, are we sure this is the freshest packet?
+                // will block but with a timeout set in the init function
                 Byte[] receiveBytes = liveLinkConnection.Receive(ref liveLinkRemoteEndpoint);
 
                 if (receiveBytes.Length < 244)
                 {
                     return false;
+                } 
+                
+                // got a good message
+                if (disconnectWarned)
+                {
+                    Logger.LogInformation("LiveLink connection reestablished");
+                    disconnectWarned = false;
                 }
 
                 // There is a bunch of static data at the beginning of the packet, it may be variable length because it includes phone name
@@ -350,9 +358,27 @@ namespace LiveLinkExtTrackingInterface
                     values.Add(Constants.LiveLinkNames[item.i], BitConverter.ToSingle(item.value.ToArray(), 0));
                 }
             }
+            catch (SocketException se)
+            {
+                if (se.SocketErrorCode == SocketError.TimedOut)
+                {
+                    if (!disconnectWarned)
+                    {
+                        Logger.LogWarning("LiveLink connection lost");
+                        disconnectWarned = true;
+                    }
+                } else
+                {
+                    // some other network socket exception
+                    Logger.LogError(se.ToString());
+                }
+                return false;
+            }
             catch (Exception e)
             {
+                // some other exception
                 Logger.LogError(e.ToString());
+                return false;
             }
 
             // Check that we got all 61 values before we go processing things
