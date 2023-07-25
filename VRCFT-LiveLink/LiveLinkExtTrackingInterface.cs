@@ -73,7 +73,7 @@ namespace LiveLinkExtTrackingInterface
             _latestData = new LiveLinkTrackingDataStruct();
 
             //_liveLinkConnection.Client.SendTimeout = 1000;
-            _liveLinkConnection.Client.ReceiveTimeout = 250;
+            _liveLinkConnection.Client.ReceiveTimeout = 1000;
 
             // async wait for connection, timeout after timetoWait
             var timeToWait = TimeSpan.FromSeconds(180);

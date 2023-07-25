@@ -1,0 +1,16 @@
+{
+  "ModuleId": "0430c68c-5708-4a5e-983d-562503e65ab5",
+  "AuthorName": "Dazbme and tkya",
+  "DllFileName": "VRCFT-LiveLink.dll",
+  "Downloads": 0,
+  "DownloadUrl": "https://github.com/kusomaigo/VRCFaceTracking-LiveLink/releases/download/v1.0.0/VRCFT-LiveLink.zip",
+  "LastUpdated": "2023-07-24T23:00:00Z",
+  "ModuleDescription": "This module allows Perfect Sync (ARKit) data streamed from the Unreal LiveLink iOS app to be used with VRCFaceTracking.",
+  "ModuleName": "LiveLink",
+  "ModulePageUrl": "https://github.com/kusomaigo/VRCFaceTracking-LiveLink",
+  "Rating": 0,
+  "Ratings": 0,
+  "RatingSum": 0,
+  "UsageInstructions": "Follow general setup instructions for LiveLink on docs.vrcft.io or the repo README. Once the LiveLink app is pointing to your PC's IP address, tap the 'Live' button to start streaming face tracking data.",
+  "Version": "1.0.0"
+}
