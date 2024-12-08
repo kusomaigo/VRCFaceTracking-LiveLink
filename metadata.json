@@ -4,7 +4,7 @@
   "DllFileName": "VRCFT-LiveLink.dll",
   "Downloads": 0,
   "DownloadUrl": "",
-  "LastUpdated": "2023-05-20T01:00:00Z",
+  "LastUpdated": "2024-12-08T17:10:00Z",
   "ModuleDescription": "The module provides face tracking data from compatible iPhone and iPads for use with VRCFT",
   "ModuleName": "ARKit LiveLink",
   "ModulePageUrl": "https://github.com/kusomaigo/VRCFaceTracking-LiveLink",
@@ -12,5 +12,5 @@
   "Ratings": 0,
   "RatingSum": 0,
   "UsageInstructions": "Follow instructions on docs.vrcft.io website for the ARKit LiveLink module.",
-  "Version": "1.0"
+  "Version": "1.1"
 }

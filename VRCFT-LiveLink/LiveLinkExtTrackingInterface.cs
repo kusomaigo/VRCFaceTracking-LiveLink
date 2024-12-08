@@ -18,34 +18,156 @@ using System.Drawing.Imaging;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Reflection;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace LiveLinkExtTrackingInterface
 {
+    // simple config file for changing LiveLink port
+    //public struct LLModuleConfigData
+    //{
+    //    public const ushort DefaultPortNo = 11111;
+
+    //    [JsonInclude]
+    //    public ushort PortNo;
+
+    //    public static LLModuleConfigData Default
+    //    {
+    //        get => new LLModuleConfigData()
+    //        {
+    //            PortNo = DefaultPortNo,
+    //        };
+    //    }
+    //}
+
+    public sealed class LLModuleConfig
+    {
+        public const ushort DefaultPortNum = 11111;
+
+        [JsonInclude]
+        public ushort PortNum = DefaultPortNum;
+
+        //[JsonInclude]
+        //public LLModuleConfigData LLModuleConfigData = LLModuleConfigData.Default;
+
+        public static class ModuleConfigPath
+        {
+            public const string Filename = "LiveLinkModuleConfig.json";
+            public static string Directory => Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            public static string FullPath => Path.Combine(ModuleConfigPath.Directory, ModuleConfigPath.Filename);
+        }
+
+        public string ToJsonString()
+        {
+            var jsonOptions = new JsonSerializerOptions
+            {
+                IncludeFields = true,
+                WriteIndented = true
+            };
+            return JsonSerializer.Serialize(this, jsonOptions);
+        }
+
+        public void WriteJsonFile(string filename) =>
+            WriteJsonFile(this, filename);
+
+        public static void WriteJsonFile(LLModuleConfig config, string filename)
+        {
+            if (config == null)
+                return;
+            var jsonStr = config.ToJsonString();
+            File.WriteAllText(filename, jsonStr);
+        }
+
+        public static LLModuleConfig ReadJsonFile(string filename)
+        {
+            var jsonStr = File.ReadAllText(filename);
+            var jsonOptions = new JsonSerializerOptions { IncludeFields = true };
+            return JsonSerializer.Deserialize<LLModuleConfig>(jsonStr, jsonOptions);
+        }
+
+        public static LLModuleConfig LoadOrNewConfig(ILogger logger, string filename)
+        {
+            var moduleConfig = LoadConfig(logger, filename);
+            if (moduleConfig == null)
+            {
+                moduleConfig = new LLModuleConfig();
+                SaveConfig(moduleConfig, logger, filename);
+            }
+
+            Debug.Assert(moduleConfig != null);
+            return moduleConfig;
+        }
+
+        public static LLModuleConfig? LoadConfig(ILogger logger, string configFile)
+        {
+            try
+            {
+                if (logger == null || string.IsNullOrEmpty(configFile))
+                    return null;
+                logger.LogDebug($"Loading module config file: {configFile}");
+                if (!File.Exists(configFile))
+                {
+                    logger.LogWarning($"Failed to find {ModuleConfigPath.Filename}, file doest not exist in {ModuleConfigPath.Directory}");
+                    return null;
+                }
+                var result = LLModuleConfig.ReadJsonFile(configFile);
+                if (result == null)
+                    throw new Exception($"Failed read json file {configFile}");
+                logger.LogDebug("Successfully loaded LiveLinkModule config.");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError($"Failed to read LiveLinkModule config. Reason: {ex.Message}");
+                return null;
+            }
+        }
+
+        public static bool SaveConfig(LLModuleConfig LLModuleConfig, ILogger logger, string configFile)
+        {
+            try
+            {
+                logger.LogDebug($"Saving LiveLinkModule config to: {configFile}");
+
+                LLModuleConfig.WriteJsonFile(configFile);
+
+                logger.LogDebug($"LiveLinkModule config saved successfully");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError($"Failed to save LiveLinkModule config. Reason: {ex.Message}");
+                return false;
+            }
+        }
+    }
+
     public class LiveLinkExtTrackingInterface : ExtTrackingModule
     {
         //private static CancellationTokenSource _cancellationToken;
 
-        private UdpClient _liveLinkConnection;
-        private IPEndPoint _liveLinkRemoteEndpoint;
-        private LiveLinkTrackingDataStruct _latestData;
+        private UdpClient? _liveLinkConnection;
+        private IPEndPoint? _liveLinkRemoteEndpoint;
+        private LiveLinkTrackingDataStruct? _latestData;
 
         private (bool, bool) trackingSupported = (false, false);
 
         private bool disconnectWarned = false;
 
+        private LLModuleConfig _moduleConfig = new LLModuleConfig();
+
         //List<Stream> _images = new List<Stream>();
 
-        public static string GetLocalIPAddress()
+        public static IEnumerable<string> GetLocalIPAddresses()
         {
             var host = Dns.GetHostEntry(Dns.GetHostName());
             foreach (var ip in host.AddressList)
             {
                 if (ip.AddressFamily == AddressFamily.InterNetwork)
                 {
-                    return ip.ToString();
+                    yield return ip.ToString();
                 }
             }
-            throw new Exception("No connection found!");
         }
 
         // Synchronous module initialization. Take as much time as you need to initialize any external modules. This runs in the init-thread
@@ -60,14 +182,16 @@ namespace LiveLinkExtTrackingInterface
 
             Logger.LogInformation("Initializing Live Link Tracking module");
 
+            _moduleConfig = LLModuleConfig.LoadOrNewConfig(Logger, LLModuleConfig.ModuleConfigPath.FullPath);
+
             //_cancellationToken?.Cancel();
             //UnifiedTrackingData.LatestEyeData.SupportsImage = false;
             //UnifiedTrackingData.LatestLipData.SupportsImage = false;
 
             // UPD client stuff
-            _liveLinkConnection = new UdpClient(Constants.Port);
+            _liveLinkConnection = new UdpClient(_moduleConfig.PortNum);
             //_liveLinkRemoteEndpoint = new IPEndPoint(IPAddress.Any, 0);
-            _liveLinkRemoteEndpoint = new IPEndPoint(IPAddress.Any, Constants.Port);
+            _liveLinkRemoteEndpoint = new IPEndPoint(IPAddress.Any, _moduleConfig.PortNum);
             //_liveLinkConnection.Client.Bind(_liveLinkRemoteEndpoint);
 
             _latestData = new LiveLinkTrackingDataStruct();
@@ -78,7 +202,57 @@ namespace LiveLinkExtTrackingInterface
             // async wait for connection, timeout after timetoWait
             var timeToWait = TimeSpan.FromSeconds(180);
 
-            Logger.LogInformation($"Seeking LiveLink connection for {timeToWait.TotalSeconds} seconds. Accepting data on {GetLocalIPAddress()}:{Constants.Port}");
+            // compile list of IP addresses
+            string likelyIpAddressList = "";
+            string otherIpAddressList = "";
+            foreach (string ip in GetLocalIPAddresses())
+            {
+                if (!string.IsNullOrEmpty(ip))
+                {
+                    // reference for expected internal IP address format: https://www.okta.com/identity-101/internal-ip/
+                    string[] addressBytes = ip.Split('.');
+                    string networkPart = $"{addressBytes[0]}.{addressBytes[1]}";
+
+                    // 192.168.0.0 to 192.168.255.255, which offers about 65,000 unique IP addresses 
+                    // 10.0.0.0 to 10.255.255.255, a range that provides up to 16 million unique IP addresses
+                    if (networkPart.Equals("192.168") || addressBytes[0].Equals("10"))
+                    {
+                        likelyIpAddressList += $"\n\t{ip}";
+                    }    
+                    else if (addressBytes[0].Equals("172"))
+                    {
+                        // convert addressBytes[1] to integer
+                        int addressByte1 = 0;
+                        try
+                        {
+                            addressByte1 = int.Parse(addressBytes[1]);
+                        }
+                        catch (FormatException)
+                        {
+                            Logger.LogError("Invalid IP address happened somehow..");
+                            continue;
+                        }
+                        // 172.16.0.0 to 172.31.255.255, providing about 1 million unique IP addresses 
+                        if (addressByte1 >= 16 && addressByte1 <= 31)
+                        {
+                            likelyIpAddressList += $"\n\t{ip}";
+                        }  
+                    }
+                    else
+                    {
+                        otherIpAddressList += $"\n\t{ip}";
+                    }
+                }
+            }
+            if (likelyIpAddressList.Length == 0 && otherIpAddressList.Length == 0)
+            {
+                Logger.LogError("No local network connection found!");
+                return (false, false);
+            }
+            Logger.LogInformation($"Seeking LiveLink connection for {timeToWait.TotalSeconds} seconds. " +
+                $"Accepting data on: \n\nIP Address(es)\n========================{likelyIpAddressList}\n========================\n\nUse Port: {_moduleConfig.PortNum}\n");
+            Logger.LogDebug($"Other IP Addresses found: \n{otherIpAddressList}\n");
+
             var asyncResult = _liveLinkConnection.BeginReceive(null, null);
 
             asyncResult.AsyncWaitHandle.WaitOne(timeToWait);
@@ -129,11 +303,13 @@ namespace LiveLinkExtTrackingInterface
         // The update function needs to be defined separately in case the user is running with the --vrcft-nothread launch parameter
         public void UpdateTracking()
         {
-
+            if (_liveLinkConnection == null || _liveLinkRemoteEndpoint == null || _latestData == null)
+            {
+                Logger.LogDebug("Attempted to update tracking without module initialization");
+                return;
+            }
             if (ReadData(_liveLinkConnection, _liveLinkRemoteEndpoint, ref _latestData))
             {
-                // TESTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
-                //Logger.LogInformation($"JawOpen: {_latestData.lowerface.JawOpen.ToString()}");
                 // Eye Stuff
                 if (trackingSupported.Item1)
                     UpdateEyeData(ref UnifiedTracking.Data.Eye, ref _latestData);

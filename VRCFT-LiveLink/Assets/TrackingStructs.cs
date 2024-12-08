@@ -179,7 +179,5 @@ namespace LiveLinkExtTrackingInterface
             "EyeYawRight", // RightEyeYaw
             "EyePitchRight", // RightEyePitch
             "EyeRollRight"}; // RightEyeRoll
-
-        public static int Port = 11111;
     }
 }
